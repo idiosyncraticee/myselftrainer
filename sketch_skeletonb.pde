@@ -16,7 +16,10 @@ ArrayList pointList;     // arraylist to store the points in
 PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
                           // This variable reappears in our custom export function
 
-boolean _record = false;
+// startStopButton handler is called on init (apparently).  We need to start this in the 
+// ON state so the handler toggles it to OFF
+boolean _record = true;
+boolean _audio = false;
 ControlP5 cp5;  // gui library
 
 
@@ -28,7 +31,7 @@ void setup() {
 
   // change the default font to Verdana
   
-  size(640, 580);
+  size(640, 640);
   fill(255, 0, 0);
 
   // GUI
@@ -47,7 +50,19 @@ void setup() {
   cp5.addButton("startStopButton")
     .setValue(0)
     .setPosition(50, 500)
-    .setSize(100, 80);
+    .setSize(100, 60)
+    .setCaptionLabel("Begin!");
+
+  cp5.addCheckBox("audioCbx")
+                .setPosition(50, 600)
+                .setColorForeground(color(120))
+                .setColorActive(color(255))
+                .setColorLabel(color(255))
+                .setSize(20, 20)
+                .setItemsPerRow(1)
+                .addItem("Audio Commands", 0)
+                ;    
+//  disableStartStop();
  
   headTotal = 0;
   print("Setup up head total: ");
@@ -70,10 +85,11 @@ void setup() {
 
   print("This is a speech recognition test. " 
       + "Say ON or OFF in the microphone" 
-      + "Speak 'quit' to quit.");
+      + "Speak 'quit' to quit.\n");
 }
 
 public void startStopButton(int newValue) {
+  //print("Record is: " + _record + "\n");
   if (_record) {
     stopRecording(); 
   }
@@ -81,6 +97,28 @@ public void startStopButton(int newValue) {
     startRecording();
   }
 }
+
+public void audioCbx(float[] values) {
+  if (values[0] == 1.0) {
+    _audio = true;
+  }
+  else {
+    _audio = false;
+  }
+}
+
+/*
+void enableStartStop() {
+  Controller b = cp5.getController("startStopButton"); 
+  b.setLock(false);
+//  b.setColor(new CColor(0, 0, 255, 0, 128));
+}
+void disableStartStop() {
+  Controller b = cp5.getController("startStopButton");
+  b.setLock(true);
+//  b.setColor(new CColor(0, 0, 255, 0, 0));
+}
+*/
 
 void draw() {
   kinect.update();
@@ -101,7 +139,7 @@ void draw() {
     }
   }
   
-  while (voce.SpeechInterface.getRecognizerQueueSize() > 0) {
+  while (_audio && voce.SpeechInterface.getRecognizerQueueSize() > 0) {
     String s = voce.SpeechInterface.popRecognizedString();
     if(-1 != s.indexOf("lets get started")){
       startRecording();
@@ -119,6 +157,7 @@ void startRecording() {
   headTotal = 0;
   colorFlag=0;
   cp5.getController("sliderValue").setValue(headTotal);
+  cp5.getController("startStopButton").setCaptionLabel("End");
   cp5.setColorValue(color(0, 255, 0, 128));
   _record = true;
 }
@@ -126,6 +165,7 @@ void startRecording() {
 void stopRecording() {
   _record = false;
   cp5.getController("sliderValue").setValue(headTotal);
+  cp5.getController("startStopButton").setCaptionLabel("Begin!");
 }
 
 void drawSkeleton(int userId) {
@@ -238,12 +278,14 @@ void onEndCalibration(int userId, boolean successful) {
     println("  Failed to calibrate user !!!");
     kinect.startPoseDetection("Psi", userId);
   }
+//  disableStartStop();
 }
 
 void onStartPose(String pose, int userId) {
   println("Started pose for user");
   kinect.stopPoseDetection(userId);
   kinect.requestCalibrationSkeleton(userId, true);
+//  enableStartStop();
 }
 
 
