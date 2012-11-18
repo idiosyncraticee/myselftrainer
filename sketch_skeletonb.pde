@@ -13,6 +13,8 @@ int frameCount = 0;
 int colorFlag = 0;
 int useVoice = 0;
 
+int headThreshold = 300;
+
 ArrayList pointList;     // arraylist to store the points in
 PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
                           // This variable reappears in our custom export function
@@ -41,7 +43,7 @@ void setup() {
   cp5.addSlider("sliderValue")
      .setRange(0,10000)
      .setValue(0)
-     .setPosition(200,530)
+     .setPosition(300,530)
      .setSize(400,10)
      ;
 
@@ -119,15 +121,18 @@ void draw() {
 }
 
 void startRecording() {
+  println("Begin recording");
   background(0,255,0);
   headTotal = 0;
   colorFlag=0;
   cp5.getController("sliderValue").setValue(headTotal);
-  cp5.setColorValue(color(0, 255, 0, 128));
+  fill(0,0,0);
+  cp5.setColorValue(color(0, 0, 0, 128));
   _record = true;
 }
 
 void stopRecording() {
+   println("End recording");
   _record = false;
   cp5.getController("sliderValue").setValue(headTotal);
 }
@@ -192,7 +197,7 @@ void drawSkeleton(int userId) {
 }
 
 void computeHeadMovement(int userId) {
-      print("SEEK");
+
   PVector head = new PVector();
   kinect.getJointPositionSkeleton(userId, kinect.SKEL_HEAD, head);
 
@@ -202,12 +207,15 @@ void computeHeadMovement(int userId) {
     
   if(kinect.isTrackingSkeleton(userId) && head.x < 1000 && head.x > -1200)
   {
-    headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
+    //headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
+    headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2));
   } else if(head.x > 1000 || head.x < -1200) {
     //background(0,0,255);
   }
-  println("The head total is = "+headTotal+" whilst the headDiff is"+thisHeadDiffX);
-
+  //println("The head total is = "+headTotal+" whilst the headDiff is"+thisHeadDiffX);
+  if(thisHeadDiffX > 4 || thisHeadDiffY > 4 || thisHeadDiffZ > 4) {
+    println("The headDiff is = "+thisHeadDiffX+" and "+thisHeadDiffY+" and "+thisHeadDiffZ);
+  }
   
   lastHeadX = head.x;
   lastHeadY = head.y;
@@ -217,7 +225,7 @@ void computeHeadMovement(int userId) {
   circleForAHead(userId);
   
     cp5.getController("sliderValue").setValue(headTotal);
-    if(headTotal>1000 && colorFlag == 0) {
+    if(headTotal>headThreshold && colorFlag == 0) {
        background(255,0,0);
       //cp5.setColorValue(color(255, 0, 0, 128));
       colorFlag=1;
