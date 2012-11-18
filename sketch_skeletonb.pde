@@ -10,6 +10,7 @@ float lastHeadY = 0;
 float lastHeadZ = 0;
 
 int frameCount = 0;
+int colorFlag = 0;
 
 ArrayList pointList;     // arraylist to store the points in
 PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
@@ -18,21 +19,26 @@ PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
 boolean _record = false;
 ControlP5 cp5;  // gui library
 
+
                          
 void setup() {
   kinect = new SimpleOpenNI(this);
   kinect.enableDepth();
   kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
 
+  // change the default font to Verdana
+  
   size(640, 580);
   fill(255, 0, 0);
 
   // GUI
   noStroke();
   cp5 = new ControlP5(this);
-
+  PFont p = createFont("Verdana",12);
+  cp5.setControlFont(p);
+  
   cp5.addSlider("sliderValue")
-     .setRange(0,100000)
+     .setRange(0,10000)
      .setValue(0)
      .setPosition(200,530)
      .setSize(400,10)
@@ -109,8 +115,11 @@ void draw() {
 }
 
 void startRecording() {
+  background(0,255,0);
   headTotal = 0;
+  colorFlag=0;
   cp5.getController("sliderValue").setValue(headTotal);
+  cp5.setColorValue(color(0, 255, 0, 128));
   _record = true;
 }
 
@@ -192,6 +201,12 @@ void computeHeadMovement(int userId) {
   lastHeadX = head.x;
   lastHeadY = head.y;
   lastHeadZ = head.z;
+  
+    cp5.getController("sliderValue").setValue(headTotal);
+    if(headTotal>1000 && colorFlag == 0) {
+      cp5.setColorValue(color(255, 0, 0, 128));
+      colorFlag=1;
+    }
 }
 
 void drawJoint(int userId, int jointID) {
