@@ -33,28 +33,29 @@ void setup() {
   
   size(640, 640);
   fill(255, 0, 0);
-
+  //background(200,200,200);
   // GUI
   noStroke();
   cp5 = new ControlP5(this);
-  PFont p = createFont("Verdana",12);
+  PFont p = createFont("Verdana",36);
   cp5.setControlFont(p);
   
   cp5.addSlider("sliderValue")
      .setRange(0,10000)
      .setValue(0)
-     .setPosition(200,530)
-     .setSize(400,10)
+     .setPosition(40,500)
+     .setSize(560,20)
+     .setCaptionLabel("")
      ;
 
   cp5.addButton("startStopButton")
     .setValue(0)
-    .setPosition(50, 500)
-    .setSize(100, 60)
+    .setPosition(40, 580)
+    .setSize(160, 40)
     .setCaptionLabel("Begin!");
 
   cp5.addCheckBox("audioCbx")
-                .setPosition(50, 600)
+                .setPosition(240, 580)
                 .setColorForeground(color(120))
                 .setColorActive(color(255))
                 .setColorLabel(color(255))
@@ -89,7 +90,6 @@ void setup() {
 }
 
 public void startStopButton(int newValue) {
-  //print("Record is: " + _record + "\n");
   if (_record) {
     stopRecording(); 
   }
@@ -128,9 +128,10 @@ void draw() {
   IntVector userList = new IntVector();
   kinect.getUsers(userList);
 
+
   if (userList.size() > 0) {
     int userId = userList.get(0);
-  
+
     if ( kinect.isTrackingSkeleton(userId)) {
       drawSkeleton(userId);
       if (_record) {
@@ -147,7 +148,7 @@ void draw() {
     else if(-1 != s.indexOf("time to go home")){
       stopRecording();
     }
-
+  
     System.out.println("You said: " + s);
   }
 }
@@ -228,23 +229,34 @@ void drawSkeleton(int userId) {
 }
 
 void computeHeadMovement(int userId) {
+      print("SEEK");
   PVector head = new PVector();
   kinect.getJointPositionSkeleton(userId, kinect.SKEL_HEAD, head);
+
   float thisHeadDiffX = abs(lastHeadX - head.x);
   float thisHeadDiffY = abs(lastHeadY - head.y);
   float thisHeadDiffZ = abs(lastHeadZ - head.z);
     
-    
-  headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
-  print("The head total is = ");
-  println(headTotal);
+  if(kinect.isTrackingSkeleton(userId) && head.x < 1000 && head.x > -1200)
+  {
+    headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
+  } else if(head.x > 1000 || head.x < -1200) {
+    //background(0,0,255);
+  }
+  println("The head total is = "+headTotal+" whilst the headDiff is"+thisHeadDiffX);
+
+  
   lastHeadX = head.x;
   lastHeadY = head.y;
   lastHeadZ = head.z;
   
+  //DRAW A CIRCLE FOR THE HEAD
+  circleForAHead(userId);
+  
     cp5.getController("sliderValue").setValue(headTotal);
     if(headTotal>1000 && colorFlag == 0) {
-      cp5.setColorValue(color(255, 0, 0, 128));
+       background(255,0,0);
+      //cp5.setColorValue(color(255, 0, 0, 128));
       colorFlag=1;
     }
 }
@@ -288,6 +300,32 @@ void onStartPose(String pose, int userId) {
 //  enableStartStop();
 }
 
+// draws a circle at the position of the head
+void circleForAHead(int userId)
+{
+  // get 3D position of a joint
+  PVector jointPos = new PVector();
+  kinect.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_HEAD,jointPos);
+  // println(jointPos.x);
+  // println(jointPos.y);
+  // println(jointPos.z);
+ 
+  // convert real world point to projective space
+  PVector jointPos_Proj = new PVector(); 
+  kinect.convertRealWorldToProjective(jointPos,jointPos_Proj);
+ 
+  // a 200 pixel diameter head
+  float headsize = 100;
+ 
+  // create a distance scalar related to the depth (z dimension)
+  float distanceScalar = (525/jointPos_Proj.z);
+ 
+  // set the fill colour to make the circle green
+  fill(0,255,0); 
+ 
+  // draw the circle at the position of the head with the head size scaled by the distance scalar
+  ellipse(jointPos_Proj.x,jointPos_Proj.y, distanceScalar*headsize,distanceScalar*headsize);  
+}
 
 void exportPoints2Text(){
   Date d = new Date();
