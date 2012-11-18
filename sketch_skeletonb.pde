@@ -11,6 +11,7 @@ float lastHeadZ = 0;
 
 int frameCount = 0;
 int colorFlag = 0;
+int useVoice = 0;
 
 ArrayList pointList;     // arraylist to store the points in
 PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
@@ -30,11 +31,11 @@ void setup() {
   
   size(640, 580);
   fill(255, 0, 0);
-  background(200,200,200);
+  //background(200,200,200);
   // GUI
   noStroke();
   cp5 = new ControlP5(this);
-  PFont p = createFont("Verdana",12);
+  PFont p = createFont("Verdana",36);
   cp5.setControlFont(p);
   
   cp5.addSlider("sliderValue")
@@ -44,7 +45,7 @@ void setup() {
      .setSize(400,10)
      ;
 
-  cp5.addButton("startStopButton")
+  cp5.addButton("SSB")
     .setValue(0)
     .setPosition(50, 500)
     .setSize(100, 80);
@@ -73,7 +74,7 @@ void setup() {
       + "Speak 'quit' to quit.");
 }
 
-public void startStopButton(int newValue) {
+public void SSB(int newValue) {
   if (_record) {
     stopRecording(); 
   }
@@ -90,9 +91,10 @@ void draw() {
   IntVector userList = new IntVector();
   kinect.getUsers(userList);
 
+
   if (userList.size() > 0) {
     int userId = userList.get(0);
-  
+
     if ( kinect.isTrackingSkeleton(userId)) {
       drawSkeleton(userId);
       if (_record) {
@@ -101,16 +103,18 @@ void draw() {
     }
   }
   
-  while (voce.SpeechInterface.getRecognizerQueueSize() > 0) {
-    String s = voce.SpeechInterface.popRecognizedString();
-    if(-1 != s.indexOf("lets get started")){
-      startRecording();
+  if(useVoice==1) {
+    while (voce.SpeechInterface.getRecognizerQueueSize() > 0) {
+      String s = voce.SpeechInterface.popRecognizedString();
+      if(-1 != s.indexOf("lets get started")){
+        startRecording();
+      }
+      else if(-1 != s.indexOf("time to go home")){
+        stopRecording();
+      }
+  
+        System.out.println("You said: " + s);
     }
-    else if(-1 != s.indexOf("time to go home")){
-      stopRecording();
-    }
-
-    System.out.println("You said: " + s);
   }
 }
 
@@ -188,6 +192,7 @@ void drawSkeleton(int userId) {
 }
 
 void computeHeadMovement(int userId) {
+      print("SEEK");
   PVector head = new PVector();
   kinect.getJointPositionSkeleton(userId, kinect.SKEL_HEAD, head);
 
@@ -195,12 +200,15 @@ void computeHeadMovement(int userId) {
   float thisHeadDiffY = abs(lastHeadY - head.y);
   float thisHeadDiffZ = abs(lastHeadZ - head.z);
     
-    if(kinect.isTrackingSkeleton(userId))
-    {
-  headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
-    }
-  print("The head total is = ");
-  println(headTotal);
+  if(kinect.isTrackingSkeleton(userId) && head.x < 1000 && head.x > -1200)
+  {
+    headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
+  } else if(head.x > 1000 || head.x < -1200) {
+    //background(0,0,255);
+  }
+  println("The head total is = "+headTotal+" whilst the headDiff is"+thisHeadDiffX);
+
+  
   lastHeadX = head.x;
   lastHeadY = head.y;
   lastHeadZ = head.z;
