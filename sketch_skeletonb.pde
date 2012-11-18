@@ -1,5 +1,6 @@
 import SimpleOpenNI.*;
 import voce.*;
+import controlP5.*;
 SimpleOpenNI  kinect;
 
 //GLOBAL VARIABLE
@@ -15,7 +16,9 @@ PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
                           // This variable reappears in our custom export function
 
 boolean _record = false;
-                          
+ControlP5 cp5;  // gui library
+
+                         
 void setup() {
   kinect = new SimpleOpenNI(this);
   kinect.enableDepth();
@@ -23,7 +26,23 @@ void setup() {
 
   size(640, 580);
   fill(255, 0, 0);
-  
+
+  // GUI
+  noStroke();
+  cp5 = new ControlP5(this);
+
+  cp5.addSlider("sliderValue")
+     .setRange(0,100000)
+     .setValue(0)
+     .setPosition(200,530)
+     .setSize(400,10)
+     ;
+
+  cp5.addButton("startStopButton")
+    .setValue(0)
+    .setPosition(50, 500)
+    .setSize(100, 80);
+ 
   headTotal = 0;
   print("Setup up head total: ");
   print(headTotal);
@@ -48,8 +67,18 @@ void setup() {
       + "Speak 'quit' to quit.");
 }
 
+public void startStopButton(int newValue) {
+  if (_record) {
+    stopRecording(); 
+  }
+  else {
+    startRecording();
+  }
+}
+
 void draw() {
   kinect.update();
+  fill(100);
   image(kinect.depthImage(), 0, 0);
 
   IntVector userList = new IntVector();
@@ -61,27 +90,33 @@ void draw() {
     if ( kinect.isTrackingSkeleton(userId)) {
       drawSkeleton(userId);
       if (_record) {
-//        computeHeadMovement(userId);
+        computeHeadMovement(userId);
       }
     }
   }
   
-  while (voce.SpeechInterface.getRecognizerQueueSize() > 0)
-      {
-        System.out.println("Found words");
-        String s = voce.SpeechInterface.popRecognizedString();
-        if(-1 != s.indexOf("start")){
-          _record = true;
-        }
-        else if(-1 != s.indexOf("stop")){
-          _record = false;
-          exportPoints2Text();
-          //exit(); 
-        }
+  while (voce.SpeechInterface.getRecognizerQueueSize() > 0) {
+    String s = voce.SpeechInterface.popRecognizedString();
+    if(-1 != s.indexOf("lets get started")){
+      startRecording();
+    }
+    else if(-1 != s.indexOf("time to go home")){
+      stopRecording();
+    }
 
-        System.out.println("You said: " + s);
-        //voce.SpeechInterface.synthesize(s);
-      }
+    System.out.println("You said: " + s);
+  }
+}
+
+void startRecording() {
+  headTotal = 0;
+  cp5.getController("sliderValue").setValue(headTotal);
+  _record = true;
+}
+
+void stopRecording() {
+  _record = false;
+  cp5.getController("sliderValue").setValue(headTotal);
 }
 
 void drawSkeleton(int userId) {
