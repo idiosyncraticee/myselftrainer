@@ -30,7 +30,7 @@ void setup() {
   
   size(640, 580);
   fill(255, 0, 0);
-
+  background(200,200,200);
   // GUI
   noStroke();
   cp5 = new ControlP5(this);
@@ -190,21 +190,28 @@ void drawSkeleton(int userId) {
 void computeHeadMovement(int userId) {
   PVector head = new PVector();
   kinect.getJointPositionSkeleton(userId, kinect.SKEL_HEAD, head);
+
   float thisHeadDiffX = abs(lastHeadX - head.x);
   float thisHeadDiffY = abs(lastHeadY - head.y);
   float thisHeadDiffZ = abs(lastHeadZ - head.z);
     
-    
+    if(kinect.isTrackingSkeleton(userId))
+    {
   headTotal=headTotal+sqrt(pow(thisHeadDiffX,2)+pow(thisHeadDiffY,2)+pow(thisHeadDiffZ,2));
+    }
   print("The head total is = ");
   println(headTotal);
   lastHeadX = head.x;
   lastHeadY = head.y;
   lastHeadZ = head.z;
   
+  //DRAW A CIRCLE FOR THE HEAD
+  circleForAHead(userId);
+  
     cp5.getController("sliderValue").setValue(headTotal);
     if(headTotal>1000 && colorFlag == 0) {
-      cp5.setColorValue(color(255, 0, 0, 128));
+       background(255,0,0);
+      //cp5.setColorValue(color(255, 0, 0, 128));
       colorFlag=1;
     }
 }
@@ -246,6 +253,32 @@ void onStartPose(String pose, int userId) {
   kinect.requestCalibrationSkeleton(userId, true);
 }
 
+// draws a circle at the position of the head
+void circleForAHead(int userId)
+{
+  // get 3D position of a joint
+  PVector jointPos = new PVector();
+  kinect.getJointPositionSkeleton(userId,SimpleOpenNI.SKEL_HEAD,jointPos);
+  // println(jointPos.x);
+  // println(jointPos.y);
+  // println(jointPos.z);
+ 
+  // convert real world point to projective space
+  PVector jointPos_Proj = new PVector(); 
+  kinect.convertRealWorldToProjective(jointPos,jointPos_Proj);
+ 
+  // a 200 pixel diameter head
+  float headsize = 100;
+ 
+  // create a distance scalar related to the depth (z dimension)
+  float distanceScalar = (525/jointPos_Proj.z);
+ 
+  // set the fill colour to make the circle green
+  fill(0,255,0); 
+ 
+  // draw the circle at the position of the head with the head size scaled by the distance scalar
+  ellipse(jointPos_Proj.x,jointPos_Proj.y, distanceScalar*headsize,distanceScalar*headsize);  
+}
 
 void exportPoints2Text(){
   Date d = new Date();
