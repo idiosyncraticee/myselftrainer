@@ -1,6 +1,6 @@
 import SimpleOpenNI.*;
+import voce.*;
 SimpleOpenNI  kinect;
-
 
 //GLOBAL VARIABLE
 float headTotal = 0;
@@ -13,20 +13,39 @@ int frameCount = 0;
 ArrayList pointList;     // arraylist to store the points in
 PrintWriter OUTPUT;       // an instantiation of the JAVA PrintWriter object.
                           // This variable reappears in our custom export function
+
+boolean _record = false;
                           
 void setup() {
   kinect = new SimpleOpenNI(this);
   kinect.enableDepth();
   kinect.enableUser(SimpleOpenNI.SKEL_PROFILE_ALL);
 
-  size(640, 480);
+  size(640, 580);
   fill(255, 0, 0);
   
   headTotal = 0;
   print("Setup up head total: ");
   print(headTotal);
-\
   
+  // paths in Processing are relative to the IDE .exe file.  Since we all have our IDE installed in different dirs,
+  // we have to do a little work to make this code shareable.
+  
+  // copy the ONOFF.gram file in the same directory as the processing IDE .exe
+  
+  // Create a new file in the sketchbook (not in source control) that looks like the one below.  The voceConfigPath variable should point to 
+  // the path where the voce.config.xml file resides (usually <sketchbook path>/data
+  /*
+    class Paths {
+      String voceConfigDir = "C:/Users/avi/Documents/Processing/sketch_skeletonb/data";
+    }
+  */
+  voce.SpeechInterface.init(new Paths().voceConfigDir, false, true, 
+      "", "ONOFF");
+
+  print("This is a speech recognition test. " 
+      + "Say ON or OFF in the microphone" 
+      + "Speak 'quit' to quit.");
 }
 
 void draw() {
@@ -41,11 +60,28 @@ void draw() {
   
     if ( kinect.isTrackingSkeleton(userId)) {
       drawSkeleton(userId);
+      if (_record) {
+//        computeHeadMovement(userId);
+      }
     }
   }
   
-    // A new frame is added to the movie every cycle through draw().
-  mm.addFrame();
+  while (voce.SpeechInterface.getRecognizerQueueSize() > 0)
+      {
+        System.out.println("Found words");
+        String s = voce.SpeechInterface.popRecognizedString();
+        if(-1 != s.indexOf("start")){
+          _record = true;
+        }
+        else if(-1 != s.indexOf("stop")){
+          _record = false;
+          exportPoints2Text();
+          //exit(); 
+        }
+
+        System.out.println("You said: " + s);
+        //voce.SpeechInterface.synthesize(s);
+      }
 }
 
 void drawSkeleton(int userId) {
@@ -105,7 +141,9 @@ void drawSkeleton(int userId) {
   drawJoint(userId, SimpleOpenNI.SKEL_RIGHT_FOOT);
   drawJoint(userId, SimpleOpenNI.SKEL_RIGHT_HAND);
   drawJoint(userId, SimpleOpenNI.SKEL_LEFT_HAND);
-  
+}
+
+void computeHeadMovement(int userId) {
   PVector head = new PVector();
   kinect.getJointPositionSkeleton(userId, kinect.SKEL_HEAD, head);
   float thisHeadDiffX = abs(lastHeadX - head.x);
@@ -119,16 +157,6 @@ void drawSkeleton(int userId) {
   lastHeadX = head.x;
   lastHeadY = head.y;
   lastHeadZ = head.z;
-  
-  frameCount++;
-  if(frameCount == 100) {
-   exportPoints2Text();
-   
-
-    
-   exit(); 
-  }
-
 }
 
 void drawJoint(int userId, int jointID) {
@@ -180,3 +208,5 @@ void exportPoints2Text(){
   OUTPUT.close();
   println("points have been exported");
 }
+
+
